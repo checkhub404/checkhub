@@ -1,14 +1,15 @@
-import { IronSessionOptions } from 'iron-session'
+// lib/session.ts
+import type { SessionOptions } from 'iron-session'
 
-export const sessionOptions: IronSessionOptions = {
+export const sessionOptions: SessionOptions = {
   cookieName: 'checkhub_session',
   password: process.env.SESSION_PASSWORD || 'change-this-to-a-long-secret-32chars',
   cookieOptions: {
-    secure: false, // در محیط تولید true
+    // روی فری/تست معمولاً http بدون https است
+    secure: false,
   },
 }
 
-// چه چیزهایی را توی سشن نگه داریم
 export type SessionUser = {
   id: string
   email: string
