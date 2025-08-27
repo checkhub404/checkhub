@@ -1,0 +1,9 @@
+node_modules
+.next
+.env
+pnpm-lock.yaml
+yarn.lock
+package-lock.json
+.DS_Store
+dist
+coverage

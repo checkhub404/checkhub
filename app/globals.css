@@ -1,0 +1,36 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --radius: 16px;
+}
+
+html {
+  direction: rtl;
+}
+
+body {
+  @apply bg-gradient-to-br from-brand-50 to-white text-gray-800 min-h-screen;
+  background-image: radial-gradient(ellipse at top left, rgba(44,152,255,0.12), transparent 50%), radial-gradient(ellipse at bottom right, rgba(16,98,180,0.10), transparent 50%);
+}
+
+.container {
+  @apply mx-auto max-w-7xl px-4 sm:px-6 lg:px-8;
+}
+
+.card {
+  @apply bg-white/80 backdrop-blur rounded-2xl shadow-soft border border-white/60;
+}
+
+.btn {
+  @apply inline-flex items-center justify-center rounded-xl px-4 py-2 font-medium shadow-sm transition hover:shadow;
+}
+
+.btn-primary {
+  @apply bg-brand-600 text-white hover:bg-brand-700;
+}
+
+.badge {
+  @apply rounded-full text-xs px-2 py-1 bg-gray-100;
+}
