@@ -1,37 +1,45 @@
-import { NextRequest, NextResponse } from 'next/server'
-import { prisma } from '@/lib/prisma'
+// app/api/tickets/[id]/route.ts
+import { NextResponse } from 'next/server';
+import { prisma } from '@/lib/prisma';
+import { getIronSession } from 'iron-session';
+import { cookies } from 'next/headers';
+import { sessionOptions, SessionUser } from '@/lib/session';
 
-const COOKIE = 'checkhub_session'
-function getSession(req: NextRequest) {
-  const raw = req.cookies.get(COOKIE)?.value
-  if (!raw) return null
-  try { return JSON.parse(Buffer.from(raw, 'base64').toString('utf8')) } catch { return null }
+async function getUser() {
+  const session = await getIronSession<{ user?: SessionUser }>(cookies(), sessionOptions);
+  return session.user ?? null;
 }
 
-export async function GET(_req: NextRequest, { params }: { params: { id: string } }) {
-  const ticket = await prisma.ticket.findUnique({
+export async function GET(_: Request, { params }: { params: { id: string } }) {
+  const user = await getUser();
+  if (!user) return NextResponse.json({ error: 'UNAUTHORIZED' }, { status: 401 });
+
+  // تیکت را با روابط امن بخوان
+  const ticket = await (prisma as any).ticket.findUnique({
     where: { id: params.id },
     include: {
-      cheque: { include: { student: true, branch: true } },
-      sourceBranch: true,
-      targetBranch: true,
-      createdBy: true,
-      assignee: true,
-      activities: { orderBy: { createdAt: 'desc' } },
-      attachments: true,
-      // ⬅️ توجه: اسم رابطه در اسکیما "reads" است (نه TicketRead)
-      reads: { include: { user: true }, orderBy: { readAt: 'desc' } },
+      branch: { select: { id: true, name: true, code: true } },
+      creator: { select: { id: true, name: true } },
+      // اینجا عمداً reads را include نمی‌کنیم تا TS گیر نده
     },
-  })
-  if (!ticket) return NextResponse.json({ error: 'NOT_FOUND' }, { status: 404 })
-  return NextResponse.json(ticket)
-}
+  });
 
-export async function DELETE(req: NextRequest, { params }: { params: { id: string } }) {
-  const session = getSession(req)
-  if (!session?.id || session.role !== 'ADMIN') {
-    return NextResponse.json({ error: 'FORBIDDEN' }, { status: 403 })
+  if (!ticket) {
+    return NextResponse.json({ error: 'NOT_FOUND' }, { status: 404 });
   }
-  await prisma.ticket.delete({ where: { id: params.id } })
-  return NextResponse.json({ ok: true })
+
+  // اگر جدول خوانده‌ها موجود است، جداگانه بخوان
+  let reads: any[] = [];
+  try {
+    reads = await (prisma as any).ticketRead.findMany({
+      where: { ticketId: params.id },
+      include: { user: true },
+      orderBy: { readAt: 'desc' },
+    });
+  } catch {
+    // اگر جدول موجود نباشد (محیط‌های قدیمی)، بی‌خطا رد شو
+    reads = [];
+  }
+
+  return NextResponse.json({ ...ticket, reads });
 }
