@@ -1,48 +1,55 @@
-// app/page.tsx
-export default function Home() {
+import NowCard from '@/components/NowCard';
+
+export default async function HomePage() {
   return (
-    <main className="space-y-6">
-      {/* کارت خوش‌آمد */}
-      <section className="rounded-2xl bg-white/80 shadow-soft ring-1 ring-black/5 p-6">
-        <div className="flex items-center gap-3">
-          <span className="text-2xl">👋 خوش آمدید</span>
-        </div>
-
-        <p className="mt-4 text-gray-700 leading-8">
-          به کارتابل حسابداری دبستان امید خوش آمدید.
-        </p>
-
-        {/* فقط دکمه ورود به داشبورد؛ دکمه «استقرار (اختیاری)» حذف شد */}
-        <div className="mt-6 flex items-center gap-3">
-          <a href="/dashboard" className="btn btn-primary">
-            ورود به داشبورد
-          </a>
+    <div className="space-y-6">
+      {/* هدر خوش‌آمد */}
+      <section className="rounded-2xl border border-white/60 bg-white/70 backdrop-blur p-6 shadow">
+        <div className="flex items-center justify-between">
+          <div>
+            <h1 className="text-xl sm:text-2xl font-bold flex items-center gap-2">
+              خوش آمدید <span className="text-amber-500">👋</span>
+            </h1>
+            <p className="mt-2 text-gray-600">
+              به کارتابل حسابداری دبستان امید خوش آمدید.
+            </p>
+          </div>
+          {/* اگر روزی بخواهی دکمه‌ای اضافه کنی، اینجا قرار بده؛ الان عمداً حذف شده است. */}
         </div>
       </section>
 
-      {/* کارت‌های پایین صفحه—بدون تغییر محتوایی */}
-      <section className="grid gap-4 md:grid-cols-3">
-        <div className="rounded-2xl bg-white/80 shadow-soft ring-1 ring-black/5 p-5">
-          <h3 className="font-bold mb-2">ارجاع سریع تیکت</h3>
-          <p className="text-sm text-gray-600">
-            برای هر چک، یک تیکت با توضیح خطا بسازید و به شعبه مقصد فوروارد کنید.
+      {/* گرید کارت‌ها؛ ساعت/تاریخ + کارت‌های نمونه داشبورد */}
+      <section className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+        {/* کارت ساعت/تاریخ زنده */}
+        <NowCard />
+
+        {/* کارت هشدار سررسید (نمونه ساده؛ در صورت داشتن دیتا، این را با دادهٔ واقعی پر کن) */}
+        <div className="rounded-2xl bg-white/80 shadow p-5 border border-white/50">
+          <div className="text-sm text-gray-500 mb-1">هشدار سررسید</div>
+          <div className="font-semibold">چک‌های نزدیک سررسید</div>
+          <p className="text-gray-600 mt-2">
+            چک‌های نزدیکِ تاریخ سررسید را زیر نظر داشته باشید.
           </p>
         </div>
 
-        <div className="rounded-2xl bg-white/80 shadow-soft ring-1 ring-black/5 p-5">
-          <h3 className="font-bold mb-2">هشدار سررسید</h3>
-          <p className="text-sm text-gray-600">
-            چک‌های نزدیک سررسید را زیر نظر داشته باشید.
+        {/* کارت گزارش‌گیری (نمونه) */}
+        <div className="rounded-2xl bg-white/80 shadow p-5 border border-white/50">
+          <div className="text-sm text-gray-500 mb-1">گزارش‌گیری</div>
+          <div className="font-semibold">SLA و نرخ برگشت</div>
+          <p className="text-gray-600 mt-2">
+            نرخ برگشت و خطاهای پرتکرار را رصد کنید.
           </p>
         </div>
 
-        <div className="rounded-2xl bg-white/80 shadow-soft ring-1 ring-black/5 p-5">
-          <h3 className="font-bold mb-2">گزارش‌گیری</h3>
-          <p className="text-sm text-gray-600">
-            SLA تیکت‌ها، نرخ برگشت و خطاهای پرتکرار را رصد کنید.
+        {/* کارت ارجاع سریع تیکت (نمونه) */}
+        <div className="rounded-2xl bg-white/80 shadow p-5 border border-white/50 sm:col-span-2 lg:col-span-1">
+          <div className="text-sm text-gray-500 mb-1">ارجاع سریع تیکت</div>
+          <div className="font-semibold">ارجاع یا توضیح خطا</div>
+          <p className="text-gray-600 mt-2">
+            برای هر چک، یک تیکت با توضیح خطا بسازید و به شعبه مقصد ارجاع دهید.
           </p>
         </div>
       </section>
-    </main>
+    </div>
   );
 }
