@@ -1,7 +1,8 @@
-@tailwind base;
+﻿@tailwind base;
 @tailwind components;
 @tailwind utilities;
 
+/* متغیر عمومی */
 :root {
   --radius: 16px;
 }
@@ -10,19 +11,29 @@ html {
   direction: rtl;
 }
 
+/* پس‌زمینه: گرادیان + دو هاله رنگی + پترن نقطه‌ای ظریف */
 body {
-  @apply bg-gradient-to-br from-brand-50 to-white text-gray-800 min-h-screen;
-  background-image: radial-gradient(ellipse at top left, rgba(44,152,255,0.12), transparent 50%), radial-gradient(ellipse at bottom right, rgba(16,98,180,0.10), transparent 50%);
+  @apply text-gray-800 min-h-screen;
+  background: linear-gradient(to bottom right, #f0f9ff, #ffffff);
+  background-image:
+    radial-gradient(ellipse at top left, rgba(44,152,255,0.12), transparent 50%),
+    radial-gradient(ellipse at bottom right, rgba(16,98,180,0.10), transparent 50%),
+    radial-gradient(rgba(14,165,233,.10) 1px, transparent 1px);
+  background-size: cover, cover, 18px 18px;
+  background-position: center, center, -1px -1px;
 }
 
+/* کانتینر استاندارد */
 .container {
   @apply mx-auto max-w-7xl px-4 sm:px-6 lg:px-8;
 }
 
+/* کارت */
 .card {
   @apply bg-white/80 backdrop-blur rounded-2xl shadow-soft border border-white/60;
 }
 
+/* دکمه‌ها */
 .btn {
   @apply inline-flex items-center justify-center rounded-xl px-4 py-2 font-medium shadow-sm transition hover:shadow;
 }
@@ -31,6 +42,7 @@ body {
   @apply bg-brand-600 text-white hover:bg-brand-700;
 }
 
+/* برچسب */
 .badge {
   @apply rounded-full text-xs px-2 py-1 bg-gray-100;
 }
