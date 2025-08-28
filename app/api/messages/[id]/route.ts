@@ -1,17 +1,18 @@
-import { NextResponse } from 'next/server'
-import { prisma } from '@/lib/prisma'
-import { getIronSession } from 'iron-session'
-import { cookies } from 'next/headers'
-import { sessionOptions, SessionUser } from '@/lib/session'
+// app/api/messages/[id]/route.ts
+import { NextResponse } from 'next/server';
+import { prisma } from '@/lib/prisma';
+import { getIronSession } from 'iron-session';
+import { cookies } from 'next/headers';
+import { sessionOptions, SessionUser } from '@/lib/session';
 
 async function getUser() {
-  const session = await getIronSession<SessionUser>(cookies(), sessionOptions)
-  return session.user ?? null
+  const session = await getIronSession<{ user?: SessionUser }>(cookies(), sessionOptions);
+  return session.user ?? null;
 }
 
 export async function GET(_: Request, { params }: { params: { id: string } }) {
-  const user = await getUser()
-  if (!user) return NextResponse.json({ error: 'UNAUTHORIZED' }, { status: 401 })
+  const user = await getUser();
+  if (!user) return NextResponse.json({ error: 'UNAUTHORIZED' }, { status: 401 });
 
   const msg = await prisma.message.findFirst({
     where: {
@@ -23,10 +24,10 @@ export async function GET(_: Request, { params }: { params: { id: string } }) {
     },
     include: {
       targetBranch: { select: { name: true, code: true } },
-      createdBy:    { select: { name: true, email: true } },
+      createdBy: { select: { name: true, email: true } },
     },
-  })
+  });
 
-  if (!msg) return NextResponse.json({ error: 'NOT_FOUND' }, { status: 404 })
-  return NextResponse.json(msg)
+  if (!msg) return NextResponse.json({ error: 'NOT_FOUND' }, { status: 404 });
+  return NextResponse.json(msg);
 }
