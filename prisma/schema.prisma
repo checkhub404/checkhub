@@ -3,29 +3,28 @@ generator client {
 }
 
 datasource db {
-  // برای توسعه سریع از SQLite استفاده می‌کنیم
   provider = "sqlite"
   url      = "file:./dev.db"
 }
 
 model User {
-  id           String   @id @default(cuid())
-  email        String   @unique
-  name         String?
-  // به‌جای enum، رشته: یکی از "ADMIN" | "BRANCH" | "VIEWER"
-  role         String   @default("BRANCH")
-  branchId     String?
-  branch       Branch?  @relation(fields: [branchId], references: [id])
-  // ← فیلد پسورد (هش‌شده با bcrypt)
-  passwordHash String?
-  createdAt    DateTime @default(now())
-  updatedAt    DateTime @updatedAt
+  id            String   @id @default(cuid())
+  email         String   @unique
+  name          String?
+  role          String   @default("BRANCH") // "ADMIN" | "BRANCH" | "VIEWER"
+  branchId      String?
+  branch        Branch?  @relation(fields: [branchId], references: [id])
+  passwordHash  String?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
 
-  // بک‌رلیشن‌ها
   assignedTickets Ticket[]   @relation("TicketAssignee")
   createdTickets  Ticket[]   @relation("TicketCreatedBy")
   activities      Activity[] @relation("ActivityActor")
-  reads           TicketRead[]          // ⬅️ اضافه شد
+
+  // پیام‌ها
+  createdMessages Message[]  @relation("MessageCreatedBy")
+  messageReads    MessageRead[]
 }
 
 model Branch {
@@ -40,6 +39,9 @@ model Branch {
   ticketsAsTarget Ticket[]  @relation("TicketTargetBranch")
   createdAt       DateTime  @default(now())
   updatedAt       DateTime  @updatedAt
+
+  // پیام‌های هدف‌گذاری‌شده به این شعبه
+  messages        Message[] @relation("MessageTargetBranch")
 }
 
 model Student {
@@ -63,7 +65,6 @@ model Cheque {
   accountNo String?
   amount    Int
   dueDate   DateTime
-  // به‌جای enum، رشته: یکی از "REGISTERED" | "PENDING" | "RETURNED" | "FIX_REQUIRED" | "CANCELLED" | "SETTLED"
   status    String   @default("REGISTERED")
   imageUrl  String?
   studentId String
@@ -76,33 +77,30 @@ model Cheque {
 }
 
 model Ticket {
-  id          String @id @default(cuid())
-  title       String
-  description String
-  // رشته: یکی از "LOW" | "MEDIUM" | "HIGH" | "URGENT"
-  priority    String @default("MEDIUM")
-  // رشته: یکی از "OPEN" | "IN_PROGRESS" | "RESOLVED" | "RETURNED"
-  status      String @default("OPEN")
-  chequeId    String
-  cheque      Cheque @relation(fields: [chequeId], references: [id])
+  id            String   @id @default(cuid())
+  title         String
+  description   String
+  priority      String   @default("MEDIUM")
+  status        String   @default("OPEN")
+  chequeId      String
+  cheque        Cheque   @relation(fields: [chequeId], references: [id])
 
   sourceBranchId String
   targetBranchId String
-  sourceBranch   Branch @relation("TicketSourceBranch", fields: [sourceBranchId], references: [id])
-  targetBranch   Branch @relation("TicketTargetBranch", fields: [targetBranchId], references: [id])
+  sourceBranch   Branch   @relation("TicketSourceBranch", fields: [sourceBranchId], references: [id])
+  targetBranch   Branch   @relation("TicketTargetBranch", fields: [targetBranchId], references: [id])
 
-  assigneeId String?
-  assignee   User?   @relation("TicketAssignee", fields: [assigneeId], references: [id])
+  assigneeId    String?
+  assignee      User?     @relation("TicketAssignee", fields: [assigneeId], references: [id])
 
-  activities  Activity[]
-  attachments Attachment[]
-  reads       TicketRead[]              // ⬅️ اضافه شد
+  activities    Activity[]
+  attachments   Attachment[]
 
-  createdById String
-  createdBy   User   @relation("TicketCreatedBy", fields: [createdById], references: [id])
+  createdById   String
+  createdBy     User     @relation("TicketCreatedBy", fields: [createdById], references: [id])
 
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
 }
 
 model Attachment {
@@ -120,7 +118,6 @@ model Activity {
   ticket    Ticket   @relation(fields: [ticketId], references: [id])
   actorId   String
   actor     User     @relation("ActivityActor", fields: [actorId], references: [id])
-  // رشته: یکی از "COMMENT" | "STATUS_CHANGE" | "ASSIGNMENT" | "FILE_UPLOAD"
   type      String
   note      String?
   createdAt DateTime @default(now())
@@ -137,5 +134,36 @@ model TicketRead {
 
   @@unique([ticketId, userId])
   @@index([ticketId])
+  @@index([userId])
+}
+
+model Message {
+  id             String   @id @default(cuid())
+  title          String
+  body           String
+  isBroadcast    Boolean  @default(false)
+  targetBranchId String?  // null یعنی سراسری
+  targetBranch   Branch?  @relation("MessageTargetBranch", fields: [targetBranchId], references: [id])
+  createdById    String
+  createdBy      User     @relation("MessageCreatedBy", fields: [createdById], references: [id])
+  createdAt      DateTime @default(now())
+
+  reads          MessageRead[]
+
+  @@index([targetBranchId])
+  @@index([createdAt])
+}
+
+model MessageRead {
+  id        String   @id @default(cuid())
+  messageId String
+  userId    String
+  readAt    DateTime @default(now())
+
+  message   Message  @relation(fields: [messageId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+
+  @@unique([messageId, userId])
+  @@index([messageId])
   @@index([userId])
 }
