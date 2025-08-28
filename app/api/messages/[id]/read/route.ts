@@ -15,12 +15,11 @@ export async function POST(_: Request, { params }: { params: { id: string } }) {
   if (!user) return NextResponse.json({ error: 'UNAUTHORIZED' }, { status: 401 });
 
   try {
-    // Cast به any تا از تایپ‌چک رد شود؛ در Runtime کاملاً معتبر است.
     await (prisma as any).messageRead.create({
       data: { messageId: params.id, userId: user.id },
     });
   } catch {
-    // unique constraint → قبلاً خوانده شده
+    // قبلاً خوانده شده
   }
   return NextResponse.json({ ok: true });
 }

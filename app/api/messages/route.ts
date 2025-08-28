@@ -6,7 +6,6 @@ import { cookies } from 'next/headers';
 import { sessionOptions, SessionUser } from '@/lib/session';
 
 async function getUser() {
-  // نکته مهم: حتماً generic را { user?: SessionUser } بزنیم
   const session = await getIronSession<{ user?: SessionUser }>(cookies(), sessionOptions);
   return session.user ?? null;
 }
@@ -26,13 +25,13 @@ export async function GET(req: NextRequest) {
   };
 
   if (unreadOnly) {
-    const count = await prisma.message.count({
+    const count = await (prisma as any).message.count({
       where: { ...where, reads: { none: { userId: user.id } } },
     });
     return NextResponse.json({ count });
   }
 
-  const messages = await prisma.message.findMany({
+  const messages = await (prisma as any).message.findMany({
     where,
     orderBy: { createdAt: 'desc' },
     select: {
@@ -64,7 +63,7 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'برای پیام غیرسراسری، انتخاب شعبه لازم است' }, { status: 400 });
   }
 
-  const msg = await prisma.message.create({
+  const msg = await (prisma as any).message.create({
     data: {
       title,
       body,

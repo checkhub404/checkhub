@@ -14,7 +14,7 @@ export async function GET(_: Request, { params }: { params: { id: string } }) {
   const user = await getUser();
   if (!user) return NextResponse.json({ error: 'UNAUTHORIZED' }, { status: 401 });
 
-  const msg = await prisma.message.findFirst({
+  const msg = await (prisma as any).message.findFirst({
     where: {
       id: params.id,
       OR: [
