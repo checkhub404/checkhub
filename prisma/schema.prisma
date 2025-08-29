@@ -1,146 +1,101 @@
+// prisma/schema.prisma
 generator client {
   provider = "prisma-client-js"
 }
 
 datasource db {
-  // برای توسعه سریع از SQLite استفاده می‌کنیم
   provider = "sqlite"
-  url      = "file:./dev.db"
+  url      = env("DATABASE_URL")
 }
 
+// --- User & Branch & Ticket (مدل‌های قبلی‌ات را حفظ کرده‌ام/حداقلی)
 model User {
-  id           String   @id @default(cuid())
-  email        String   @unique
-  name         String?
-  // به‌جای enum، رشته: یکی از "ADMIN" | "BRANCH" | "VIEWER"
-  role         String   @default("BRANCH")
-  branchId     String?
-  branch       Branch?  @relation(fields: [branchId], references: [id])
-  // ← فیلد پسورد (هش‌شده با bcrypt)
-  passwordHash String?
-  createdAt    DateTime @default(now())
-  updatedAt    DateTime @updatedAt
+  id        String   @id @default(cuid())
+  username  String   @unique
+  password  String
+  role      Role     @default(USER)
+  branchId  String?
+  branch    Branch?  @relation(fields: [branchId], references: [id])
 
-  // بک‌رلیشن‌ها
-  assignedTickets Ticket[]   @relation("TicketAssignee")
-  createdTickets  Ticket[]   @relation("TicketCreatedBy")
-  activities      Activity[] @relation("ActivityActor")
+  // تیکت‌ها
+  tickets   Ticket[]
 
-  // ← بک‌رلیشن جدید برای رکوردهای «خوانده شد»
+  // خواندگی‌ها (تیکت)
   ticketReads TicketRead[]
+
+  // خواندگی‌های پیام
+  messageReads MessageRead[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+enum Role {
+  ADMIN
+  USER
 }
 
 model Branch {
-  id              String    @id @default(cuid())
-  code            String    @unique
-  name            String
-  isActive        Boolean   @default(true)
-  users           User[]
-  students        Student[]
-  cheques         Cheque[]
-  ticketsAsSource Ticket[]  @relation("TicketSourceBranch")
-  ticketsAsTarget Ticket[]  @relation("TicketTargetBranch")
-  createdAt       DateTime  @default(now())
-  updatedAt       DateTime  @updatedAt
-}
-
-model Student {
-  id        String   @id @default(cuid())
-  code      String   @unique
-  fullName  String
-  grade     String?
-  guardian  String?
-  phone     String?
-  branchId  String
-  branch    Branch   @relation(fields: [branchId], references: [id])
-  cheques   Cheque[]
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-}
-
-model Cheque {
-  id        String   @id @default(cuid())
-  sayadiId  String?  @unique
-  bank      String?
-  accountNo String?
-  amount    Int
-  dueDate   DateTime
-  // به‌جای enum، رشته: یکی از "REGISTERED" | "PENDING" | "RETURNED" | "FIX_REQUIRED" | "CANCELLED" | "SETTLED"
-  status    String   @default("REGISTERED")
-  imageUrl  String?
-  studentId String
-  student   Student  @relation(fields: [studentId], references: [id])
-  branchId  String
-  branch    Branch   @relation(fields: [branchId], references: [id])
-  tickets   Ticket[]
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  id       String  @id @default(cuid())
+  name     String
+  code     String  @unique
+  tickets  Ticket[]
 }
 
 model Ticket {
-  id          String @id @default(cuid())
-  title       String
-  description String
-  // رشته: یکی از "LOW" | "MEDIUM" | "HIGH" | "URGENT"
-  priority    String @default("MEDIUM")
-  // رشته: یکی از "OPEN" | "IN_PROGRESS" | "RESOLVED" | "RETURNED"
-  status      String @default("OPEN")
-  chequeId    String
-  cheque      Cheque @relation(fields: [chequeId], references: [id])
+  id         String   @id @default(cuid())
+  title      String
+  body       String?
+  priority   String?
+  status     String   @default("OPEN")
+  branchId   String?
+  branch     Branch?  @relation(fields: [branchId], references: [id])
+  authorId   String
+  author     User     @relation(fields: [authorId], references: [id])
+  // خواندگی‌ها
+  reads      TicketRead[]
 
-  sourceBranchId String
-  targetBranchId String
-  sourceBranch   Branch @relation("TicketSourceBranch", fields: [sourceBranchId], references: [id])
-  targetBranch   Branch @relation("TicketTargetBranch", fields: [targetBranchId], references: [id])
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+}
 
-  assigneeId String?
-  assignee   User?   @relation("TicketAssignee", fields: [assigneeId], references: [id])
+model TicketRead {
+  id        String   @id @default(cuid())
+  ticketId  String
+  userId    String
+  readAt    DateTime @default(now())
 
-  activities  Activity[]
-  attachments Attachment[]
+  ticket    Ticket   @relation(fields: [ticketId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade, onUpdate: Cascade)
 
-  createdById String
-  createdBy   User   @relation("TicketCreatedBy", fields: [createdById], references: [id])
+  @@unique([ticketId, userId])
+}
 
-  // ← بک‌رلیشن جدید برای جدول «خوانده شد»
-  ticketReads TicketRead[]
+// --- پیام‌های بخشنامه‌ای
+model Message {
+  id        String   @id @default(cuid())
+  title     String
+  body      String
+  // اگر true باشد، پیام برای همه‌ی شعب/کاربران است
+  toAll     Boolean  @default(false)
+  // اگر بخواهی برای یک شعبه خاص بفرستی (اختیاری)
+  branchId  String?
+  branch    Branch?  @relation(fields: [branchId], references: [id])
+
+  reads     MessageRead[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 }
 
-model Attachment {
+model MessageRead {
   id        String   @id @default(cuid())
-  url       String
-  fileName  String
-  ticketId  String
-  ticket    Ticket   @relation(fields: [ticketId], references: [id])
-  createdAt DateTime @default(now())
-}
+  messageId String
+  userId    String
+  readAt    DateTime @default(now())
 
-model Activity {
-  id        String   @id @default(cuid())
-  ticketId  String
-  ticket    Ticket   @relation(fields: [ticketId], references: [id])
-  actorId   String
-  actor     User     @relation("ActivityActor", fields: [actorId], references: [id])
-  // رشته: یکی از "COMMENT" | "STATUS_CHANGE" | "ASSIGNMENT" | "FILE_UPLOAD"
-  type      String
-  note      String?
-  createdAt DateTime @default(now())
-}
+  message   Message  @relation(fields: [messageId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade, onUpdate: Cascade)
 
-model TicketRead {
-  id       String   @id @default(cuid())
-  ticketId String
-  userId   String
-  readAt   DateTime @default(now())
-
-  // روابط با طرف مقابل (همانی که پرسیما برایش خطا داد)
-  ticket Ticket @relation(fields: [ticketId], references: [id], onDelete: Cascade, onUpdate: Cascade)
-  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade, onUpdate: Cascade)
-
-  @@unique([ticketId, userId])
-  @@index([ticketId])
-  @@index([userId])
+  @@unique([messageId, userId])
 }

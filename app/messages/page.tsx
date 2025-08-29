@@ -1,52 +1,75 @@
-import Link from 'next/link'
+// app/messages/page.tsx
+import { cookies } from "next/headers"
+import { getIronSession } from "iron-session"
+import { sessionOptions, type SessionUser } from "@/lib/session"
+import prisma from "@/lib/prisma"
+import Link from "next/link"
 
-type Item = {
-  id: string
-  title: string
-  createdAt: string
-  isBroadcast: boolean
-  targetBranch?: { name: string | null, code: string | null } | null
-  reads: { id: string }[]
-}
-
-async function fetchMessages(): Promise<Item[]> {
-  const base = process.env.NEXT_PUBLIC_BASE_URL ?? ''
-  const res = await fetch(`${base}/api/messages`, { cache: 'no-store' })
-  if (!res.ok) return []
-  return res.json()
+async function getUser() {
+  const session = await getIronSession<SessionUser>(cookies(), sessionOptions)
+  return session.user ?? null
 }
 
 export default async function MessagesPage() {
-  const items = await fetchMessages()
+  const me = await getUser()
+  if (!me) {
+    return (
+      <div className="container">
+        <div className="card p-8 mt-6 text-center">
+          <p>برای مشاهده صندوق پیام وارد شوید.</p>
+          <Link className="btn btn-primary mt-4" href="/login">ورود</Link>
+        </div>
+      </div>
+    )
+  }
+
+  // اگر جدول هنوز ساخته نشده باشد، اینجا خطا می‌داد؛ با try/catch هندل می‌کنیم
+  let messages: {id:string; title:string; createdAt: Date}[] = []
+  try {
+    messages = await prisma.message.findMany({
+      where: me.role === "ADMIN"
+        ? {} // ادمین همه پیام‌ها را می‌بیند
+        : {
+            OR: [
+              { toAll: true },
+              { branchId: me.branchId ?? undefined }
+            ]
+          },
+      select: { id: true, title: true, createdAt: true },
+      orderBy: { createdAt: "desc" }
+    })
+  } catch {
+    // اگر جدول نبود، پیام راهنما
+    return (
+      <div className="container">
+        <div className="card p-8 mt-6 text-center">
+          <p>در حال آماده‌سازی صندوق پیام...</p>
+          <p className="text-gray-500 mt-2">اگر اولین‌بار است دیپلوی می‌کنید، چند لحظه بعد صفحه را رفرش کنید.</p>
+        </div>
+      </div>
+    )
+  }
 
   return (
-    <div className="space-y-6">
-      <h1 className="text-xl font-bold">صندوق پیام</h1>
+    <div className="container py-8">
+      <h1 className="text-xl font-bold mb-4">صندوق پیام</h1>
 
-      <div className="grid gap-3">
-        {items.map((m) => {
-          const date = new Date(m.createdAt)
-          const faDate = new Intl.DateTimeFormat('fa-IR', { dateStyle: 'medium', timeStyle: 'short' }).format(date)
-          const unread = m.reads.length === 0
-
-          return (
-            <Link href={`/messages/${m.id}`} key={m.id} className="card p-4 hover:shadow transition">
-              <div className="flex items-center justify-between gap-4">
-                <div className="flex items-center gap-2">
-                  {unread && <span className="h-2 w-2 rounded-full bg-red-500 inline-block" />}
-                  <div className="font-semibold">{m.title}</div>
-                </div>
-                <div className="text-xs text-gray-500">{faDate}</div>
-              </div>
-              <div className="text-xs text-gray-500 mt-1">
-                {m.isBroadcast ? 'پیام سراسری' : `برای شعبه: ${m.targetBranch?.name ?? ''}`}
+      {messages.length === 0 ? (
+        <div className="card p-8 text-center">
+          <p>فعلاً پیامی ندارید.</p>
+        </div>
+      ) : (
+        <div className="grid gap-3">
+          {messages.map(m => (
+            <Link key={m.id} href={`/messages/${m.id}`} className="card p-5 hover:shadow">
+              <div className="flex items-center justify-between">
+                <span className="font-medium">{m.title}</span>
+                <span className="text-xs text-gray-500">{new Date(m.createdAt).toLocaleString("fa-IR")}</span>
               </div>
             </Link>
-          )
-        })}
-
-        {items.length === 0 && <div className="text-gray-500">پیامی یافت نشد.</div>}
-      </div>
+          ))}
+        </div>
+      )}
     </div>
   )
 }

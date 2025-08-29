@@ -1,56 +1,42 @@
-'use client'
-import useSWR from 'swr'
+// components/NavUser.tsx
+"use client"
 
-const fetcher = (u: string) => fetch(u).then(r => r.json())
+import Link from "next/link"
+import { useEffect, useState } from "react"
+
+type Me = {
+  username: string
+  role: "ADMIN" | "USER"
+}
 
 export default function NavUser() {
-  const { data } = useSWR('/api/me', fetcher, { refreshInterval: 15000 })
-  const user = data?.user
+  const [me, setMe] = useState<Me | null>(null)
 
-  async function logout() {
-    await fetch('/api/logout', { method: 'POST' })
-    window.location.reload()
-  }
+  useEffect(() => {
+    fetch("/api/me", { cache: "no-store" })
+      .then(r => r.ok ? r.json() : null)
+      .then(data => setMe(data))
+      .catch(() => setMe(null))
+  }, [])
 
-  // لینک‌های عمومی
-  const items: JSX.Element[] = [
-    <a key="home" className="btn" href="/">خانه</a>,
-    <a key="dashboard" className="btn" href="/dashboard">داشبورد</a>,
-    <a key="new-ticket" className="btn btn-primary" href="/tickets/new">تیکت جدید</a>,
-  ]
-
-  // کاربر لاگین نشده
-  if (!user) {
-    return (
-      <div className="flex items-center gap-3 text-sm">
-        {items}
-        <a className="btn" href="/login">ورود</a>
-      </div>
-    )
-  }
-
-  // لینک‌های مشترک
-  const common = [
-    <a key="account" className="btn" href="/account">حساب کاربری</a>,
-    <button key="logout" className="btn" onClick={logout}>خروج</button>,
-  ]
-
-  // ادمین
-  if (user.role === 'ADMIN') {
-    return (
-      <div className="flex items-center gap-3 text-sm">
-        {items}
-        <a key="admin" className="btn" href="/admin">ادمین</a>
-        {common}
-      </div>
-    )
-  }
-
-  // کاربر غیر ادمین
   return (
-    <div className="flex items-center gap-3 text-sm">
-      {items}
-      {common}
-    </div>
+    <nav className="flex items-center gap-3 text-sm">
+      <Link className="btn" href="/">خانه</Link>
+      <Link className="btn" href="/dashboard">داشبورد</Link>
+
+      {/* صندوق پیام برای همه‌ی کاربران */}
+      <Link className="btn" href="/messages">صندوق پیام</Link>
+
+      {/* مدیریت شعبه‌ها فقط برای ادمین */}
+      {me?.role === "ADMIN" && (
+        <>
+          <Link className="btn" href="/admin">ادمین</Link>
+          <Link className="btn" href="/admin/branches">مدیریت شعبه‌ها</Link>
+        </>
+      )}
+
+      <Link className="btn btn-primary" href="/tickets/new">تیکت جدید</Link>
+      <Link className="btn" href="/login">ورود</Link>
+    </nav>
   )
 }
