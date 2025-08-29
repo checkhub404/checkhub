@@ -1,62 +1,68 @@
 // prisma/schema.prisma
+
 generator client {
   provider = "prisma-client-js"
 }
 
 datasource db {
   provider = "sqlite"
-  url      = env("DATABASE_URL")
+  url      = "file:./dev.db"
 }
 
-// --- User & Branch & Ticket (مدل‌های قبلی‌ات را حفظ کرده‌ام/حداقلی)
+/*
+  توجه: SQLite از enum پشتیبانی نمی‌کند.
+  به‌جای enum Role، فیلد role را String با مقدار پیش‌فرض "USER" گذاشته‌ایم.
+*/
+
 model User {
-  id        String   @id @default(cuid())
-  username  String   @unique
-  password  String
-  role      Role     @default(USER)
-  branchId  String?
-  branch    Branch?  @relation(fields: [branchId], references: [id])
+  id            String         @id @default(cuid())
+  username      String         @unique
+  passwordHash  String
+  displayName   String?
+  role          String         @default("USER") // به‌جای enum
+  branchId      String?
+  branch        Branch?        @relation(fields: [branchId], references: [id])
 
-  // تیکت‌ها
-  tickets   Ticket[]
+  // روابط
+  tickets       Ticket[]       @relation("UserTickets")
+  ticketReads   TicketRead[]
+  messagesAuthored Message[]   @relation("AuthorMessages")
+  messageReads  MessageRead[]
 
-  // خواندگی‌ها (تیکت)
-  ticketReads TicketRead[]
-
-  // خواندگی‌های پیام
-  messageReads MessageRead[]
-
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-}
-
-enum Role {
-  ADMIN
-  USER
+  createdAt     DateTime       @default(now())
+  updatedAt     DateTime       @updatedAt
 }
 
 model Branch {
-  id       String  @id @default(cuid())
-  name     String
-  code     String  @unique
-  tickets  Ticket[]
+  id        String     @id @default(cuid())
+  code      String     @unique
+  name      String
+
+  // طرف مقابل روابط
+  users     User[]
+  tickets   Ticket[]
+  messages  Message[]
+
+  createdAt DateTime   @default(now())
+  updatedAt DateTime   @updatedAt
 }
 
 model Ticket {
-  id         String   @id @default(cuid())
-  title      String
-  body       String?
-  priority   String?
-  status     String   @default("OPEN")
-  branchId   String?
-  branch     Branch?  @relation(fields: [branchId], references: [id])
-  authorId   String
-  author     User     @relation(fields: [authorId], references: [id])
-  // خواندگی‌ها
-  reads      TicketRead[]
+  id          String      @id @default(cuid())
+  title       String
+  content     String
+  attachments String?     // در صورت نیاز بعداً می‌توان JSON کرد
 
-  createdAt  DateTime @default(now())
-  updatedAt  DateTime @updatedAt
+  branchId    String?
+  branch      Branch?     @relation(fields: [branchId], references: [id])
+
+  userId      String?
+  user        User?       @relation("UserTickets", fields: [userId], references: [id])
+
+  reads       TicketRead[]
+
+  createdAt   DateTime    @default(now())
+  updatedAt   DateTime    @updatedAt
 }
 
 model TicketRead {
@@ -71,21 +77,21 @@ model TicketRead {
   @@unique([ticketId, userId])
 }
 
-// --- پیام‌های بخشنامه‌ای
 model Message {
-  id        String   @id @default(cuid())
-  title     String
-  body      String
-  // اگر true باشد، پیام برای همه‌ی شعب/کاربران است
-  toAll     Boolean  @default(false)
-  // اگر بخواهی برای یک شعبه خاص بفرستی (اختیاری)
-  branchId  String?
-  branch    Branch?  @relation(fields: [branchId], references: [id])
+  id          String       @id @default(cuid())
+  title       String
+  body        String
 
-  reads     MessageRead[]
+  branchId    String?
+  branch      Branch?      @relation(fields: [branchId], references: [id])
 
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  authorId    String
+  author      User         @relation("AuthorMessages", fields: [authorId], references: [id])
+
+  pinned      Boolean      @default(false)
+  createdAt   DateTime     @default(now())
+
+  messageReads MessageRead[]
 }
 
 model MessageRead {
